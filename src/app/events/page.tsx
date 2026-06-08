@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useT, useLang } from '@/lib/i18n';
-import { MOCK_EVENTS, getCategoryStyle, getCategoryLabel, type SDGEvent } from '@/lib/data';
+import { getCategoryStyle, getCategoryLabel, type SDGEvent } from '@/lib/data';
+import { useStore } from '@/lib/store';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
@@ -20,7 +21,7 @@ import {
 interface RegistrationModalProps {
   event: SDGEvent;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (data: { name: string; email: string; phone: string; church: string }) => void;
 }
 
 function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProps) {
@@ -470,7 +471,7 @@ function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProp
                 </a>
               )}
 
-              <button className="btn btn-primary" onClick={() => { onComplete(); onClose(); }} style={{ width: '100%' }}>
+              <button className="btn btn-primary" onClick={() => { onComplete({ name: form.name, email: form.email, phone: form.phone, church: form.church }); onClose(); }} style={{ width: '100%' }}>
                 {t('registration', 'close')}
               </button>
             </div>
@@ -497,6 +498,7 @@ type CategoryFilter = 'all' | 'conference' | 'camp' | 'workshop' | 'cafe';
 export default function EventsPage() {
   const t = useT();
   const lang = useLang();
+  const { events, addRegistration } = useStore();
 
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [filter, setFilter] = useState<CategoryFilter>('all');
@@ -510,7 +512,7 @@ export default function EventsPage() {
   const shortMonths = lang === 'en' ? SHORT_MONTHS_EN : SHORT_MONTHS_PT;
   const dayNames = lang === 'en' ? DAY_NAMES_EN : DAY_NAMES_PT;
 
-  const filteredEvents = filter === 'all' ? MOCK_EVENTS : MOCK_EVENTS.filter(e => e.category === filter);
+  const filteredEvents = filter === 'all' ? events : events.filter(e => e.category === filter);
 
   const formatDateRange = (ev: SDGEvent) => {
     const s = new Date(ev.date + 'T00:00:00');
@@ -894,7 +896,18 @@ export default function EventsPage() {
         <RegistrationModal
           event={selectedEvent}
           onClose={() => { setShowRegistration(false); setSelectedEvent(null); }}
-          onComplete={() => { setShowRegistration(false); setSelectedEvent(null); }}
+          onComplete={(data) => {
+            addRegistration({
+              eventId: selectedEvent.id,
+              name: data.name,
+              email: data.email,
+              phone: data.phone,
+              church: data.church,
+              status: 'confirmed',
+            });
+            setShowRegistration(false);
+            setSelectedEvent(null);
+          }}
         />
       )}
     </main>
