@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { LanguageContext, type Lang } from '@/lib/i18n';
+import { StoreProvider } from '@/lib/store';
 import Nav from './Nav';
 import Footer from './Footer';
 
@@ -27,9 +28,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <LanguageContext.Provider value={lang}>
-      <Nav currentPage={currentPage} lang={lang} onLangChange={() => setLang((l) => (l === 'pt' ? 'en' : 'pt'))} />
-      <main className="page-enter">{children}</main>
-      {!isAdmin && <Footer />}
+      <StoreProvider>
+        <Nav currentPage={currentPage} lang={lang} onLangChange={() => setLang((l) => (l === 'pt' ? 'en' : 'pt'))} />
+        <main className="page-enter">{children}</main>
+        {!isAdmin && <Footer />}
+      </StoreProvider>
     </LanguageContext.Provider>
   );
 }

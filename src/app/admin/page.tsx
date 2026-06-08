@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import { useT, useLang } from '@/lib/i18n';
 import {
-  MOCK_EVENTS,
-  MOCK_REGISTRATIONS,
   getCategoryLabel,
   type SDGEvent,
   type Registration,
 } from '@/lib/data';
+import { useStore } from '@/lib/store';
 import Container from '@/components/Container';
 import Toast from '@/components/Toast';
 import {
@@ -300,13 +299,13 @@ function EventFormModal({ event, onSave, onClose }: EventFormModalProps) {
 export default function AdminPage() {
   const t = useT();
   const lang = useLang();
+  const { events, addEvent, updateEvent, deleteEvent, registrations, updateRegistrationStatus, settings, updateSettings } = useStore();
 
   const [tab, setTab] = useState<Tab>('dashboard');
-  const [events, setEvents] = useState<SDGEvent[]>(MOCK_EVENTS);
-  const [registrations, setRegistrations] = useState<Registration[]>(MOCK_REGISTRATIONS);
   const [editEvent, setEditEvent] = useState<SDGEvent | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [localSettings, setLocalSettings] = useState(settings);
 
   /* helpers */
   const eventById = (id: number) => events.find((e) => e.id === id);
@@ -318,33 +317,29 @@ export default function AdminPage() {
       return sum + (ev ? ev.price : 0);
     }, 0);
 
-  const handleSaveEvent = (evt: SDGEvent) => {
+  const handleSaveEvent = (eventData: SDGEvent) => {
     if (editEvent) {
-      setEvents((prev) => prev.map((e) => (e.id === evt.id ? evt : e)));
-      setToast(t('admin', 'editEvent') + ' - OK');
+      updateEvent(eventData.id, eventData);
     } else {
-      setEvents((prev) => [...prev, evt]);
-      setToast(t('admin', 'createEvent') + ' - OK');
+      const { id: _id, ...rest } = eventData;
+      addEvent(rest);
     }
-    setEditEvent(null);
     setShowForm(false);
+    setEditEvent(null);
+    setToast(lang === 'pt' ? 'Evento salvo com sucesso' : 'Event saved successfully');
   };
 
   const handleDeleteEvent = (id: number) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    deleteEvent(id);
     setToast(t('admin', 'deleteEvent') + ' - OK');
   };
 
   const handleConfirmReg = (id: number) => {
-    setRegistrations((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'confirmed' as const } : r)),
-    );
+    updateRegistrationStatus(id, 'confirmed');
   };
 
   const handleCancelReg = (id: number) => {
-    setRegistrations((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'cancelled' as const } : r)),
-    );
+    updateRegistrationStatus(id, 'cancelled');
   };
 
   /* sidebar items */
@@ -707,25 +702,46 @@ export default function AdminPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            setToast(t('admin', 'save') + ' - OK');
+            updateSettings(localSettings);
+            setToast(lang === 'pt' ? 'Configurações salvas' : 'Settings saved');
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="form-group">
               <label className="form-label">Project Name</label>
-              <input className="form-input" defaultValue="Projeto Soli Deo Gloria" />
+              <input
+                className="form-input"
+                value={localSettings.projectName}
+                onChange={(e) => setLocalSettings({ ...localSettings, projectName: e.target.value })}
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Contact Email</label>
-              <input className="form-input" type="email" defaultValue="" placeholder="contato@sdg.org.br" />
+              <input
+                className="form-input"
+                type="email"
+                value={localSettings.contactEmail}
+                onChange={(e) => setLocalSettings({ ...localSettings, contactEmail: e.target.value })}
+                placeholder="contato@sdg.org.br"
+              />
             </div>
             <div className="form-group">
               <label className="form-label">PIX Key</label>
-              <input className="form-input" defaultValue="" placeholder="chave@pix" />
+              <input
+                className="form-input"
+                value={localSettings.pixKey}
+                onChange={(e) => setLocalSettings({ ...localSettings, pixKey: e.target.value })}
+                placeholder="chave@pix"
+              />
             </div>
             <div className="form-group">
               <label className="form-label">WhatsApp</label>
-              <input className="form-input" defaultValue="" placeholder="(81) 99999-0000" />
+              <input
+                className="form-input"
+                value={localSettings.whatsapp}
+                onChange={(e) => setLocalSettings({ ...localSettings, whatsapp: e.target.value })}
+                placeholder="(81) 99999-0000"
+              />
             </div>
           </div>
           <div style={{ marginTop: 28 }}>

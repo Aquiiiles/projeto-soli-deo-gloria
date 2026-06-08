@@ -5,7 +5,7 @@ import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
 import ImagePlaceholder from '@/components/ImagePlaceholder';
-import { MOCK_TEAM } from '@/lib/data';
+import { useStore } from '@/lib/store';
 
 const ROLE_LABELS_PT: Record<string, string> = {
   pastor: 'Pastor e Fundador',
@@ -22,6 +22,7 @@ const ROLE_LABELS_EN: Record<string, string> = {
 export default function TeamPage() {
   const t = useT();
   const lang = useLang();
+  const { team } = useStore();
 
   const roleLabels = lang === 'pt' ? ROLE_LABELS_PT : ROLE_LABELS_EN;
 
@@ -50,7 +51,7 @@ export default function TeamPage() {
               gap: 32,
             }}
           >
-            {MOCK_TEAM.map((member, i) => (
+            {team.map((member, i) => (
               <div
                 key={member.name}
                 className="card"

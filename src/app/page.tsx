@@ -1,7 +1,8 @@
 'use client';
 
 import { useT, useLang } from '@/lib/i18n';
-import { MOCK_EVENTS, getCategoryStyle, getCategoryLabel } from '@/lib/data';
+import { getCategoryStyle, getCategoryLabel } from '@/lib/data';
+import { useStore } from '@/lib/store';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
@@ -22,8 +23,9 @@ function formatEventDate(dateStr: string, lang: string) {
 export default function Home() {
   const t = useT();
   const lang = useLang();
+  const { events: allEvents } = useStore();
 
-  const events = MOCK_EVENTS.slice(0, 3);
+  const events = allEvents.slice(0, 3);
 
   const areas = [
     { num: '01', icon: Book, title: t('areas', 'education'), desc: t('areas', 'educationDesc') },
