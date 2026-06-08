@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useT, useLang } from '@/lib/i18n';
 import { MOCK_EVENTS, getCategoryStyle, getCategoryLabel, type SDGEvent } from '@/lib/data';
 import Container from '@/components/Container';
@@ -31,10 +31,24 @@ function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProp
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'boleto'>('pix');
   const [copied, setCopied] = useState(false);
+  const [cardToken, setCardToken] = useState('');
+  const [paymentId, setPaymentId] = useState<number | null>(null);
+  const [pixData, setPixData] = useState<{ qr_code: string; qr_code_base64: string } | null>(null);
+  const [boletoUrl, setBoletoUrl] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', church: '', age: '', notes: '',
   });
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
 
   const handleFormSubmit = () => {
     if (!form.name || !form.email || !form.phone) return;
@@ -45,16 +59,127 @@ function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProp
     }
   };
 
-  const handlePayment = () => {
-    setProcessing(true);
+  const startPolling = (id: number) => {
+    setPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/payments/status?id=${id}`);
+        const data = await res.json();
+        if (data.status === 'approved') {
+          clearInterval(interval);
+          pollingRef.current = null;
+          setPolling(false);
+          setStep(3);
+        } else if (data.status === 'cancelled' || data.status === 'rejected') {
+          clearInterval(interval);
+          pollingRef.current = null;
+          setPolling(false);
+          setPaymentError(lang === 'pt' ? 'Pagamento não aprovado.' : 'Payment not approved.');
+        }
+      } catch {
+        // Ignore polling errors
+      }
+    }, 5000);
+
+    pollingRef.current = interval;
+
+    // Stop polling after 10 minutes
     setTimeout(() => {
+      clearInterval(interval);
+      if (pollingRef.current === interval) pollingRef.current = null;
+      setPolling(false);
+    }, 600000);
+  };
+
+  const handleCheckStatus = async () => {
+    if (!paymentId) return;
+    setProcessing(true);
+    try {
+      const res = await fetch(`/api/payments/status?id=${paymentId}`);
+      const data = await res.json();
+      if (data.status === 'approved') {
+        if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+        setPolling(false);
+        setStep(3);
+      } else if (data.status === 'cancelled' || data.status === 'rejected') {
+        if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+        setPolling(false);
+        setPaymentError(lang === 'pt' ? 'Pagamento não aprovado.' : 'Payment not approved.');
+      }
+    } catch {
+      // ignore
+    } finally {
       setProcessing(false);
-      setStep(3);
-    }, 2000);
+    }
+  };
+
+  const handlePayment = async () => {
+    setProcessing(true);
+    setPaymentError(null);
+
+    try {
+      const payload: Record<string, unknown> = {
+        method: paymentMethod === 'card' ? 'credit_card' : paymentMethod,
+        eventName: lang === 'en' ? event.nameEn : event.name,
+        amount: event.price,
+        eventId: event.id,
+        payer: {
+          email: form.email,
+          name: form.name,
+        },
+        registrationData: {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          church: form.church,
+        },
+      };
+
+      // For credit card, add token (requires MP.js SDK in production)
+      if (paymentMethod === 'card') {
+        payload.token = cardToken;
+        payload.installments = 1;
+      }
+
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao processar pagamento');
+      }
+
+      setPaymentId(data.id);
+
+      if (paymentMethod === 'pix' && data.pix) {
+        setPixData(data.pix);
+        startPolling(data.id);
+      } else if (paymentMethod === 'boleto' && data.boleto) {
+        setBoletoUrl(data.boleto.external_resource_url);
+        setStep(3);
+      } else if (data.status === 'approved') {
+        setStep(3);
+      } else if (data.status === 'rejected') {
+        setPaymentError(lang === 'pt' ? 'Pagamento recusado. Tente outro método.' : 'Payment rejected. Try another method.');
+      } else {
+        // For pending statuses
+        setStep(3);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao processar pagamento';
+      setPaymentError(message);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleCopyPix = () => {
-    navigator.clipboard.writeText('sdg@projeto.com.br');
+    const pixCode = pixData?.qr_code || '';
+    navigator.clipboard?.writeText(pixCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -168,49 +293,83 @@ function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProp
               {/* PIX */}
               {paymentMethod === 'pix' && (
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
-                    {t('registration', 'pixInstructions')}
-                  </p>
-                  <div style={{
-                    width: 180, height: 180, margin: '0 auto 16px', background: 'var(--primary-50)',
-                    borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--primary-200)', fontSize: 13, fontWeight: 500,
-                  }}>
-                    QR CODE
-                  </div>
-                  <p style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', marginBottom: 6 }}>
-                    {t('registration', 'pixKey')}
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                    <code style={{
-                      padding: '8px 14px', background: 'var(--bg-warm)', borderRadius: 4,
-                      fontSize: 14, color: 'var(--text)',
-                    }}>
-                      sdg@projeto.com.br
-                    </code>
-                    <button
-                      onClick={handleCopyPix}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px',
-                        fontSize: 13, fontWeight: 500, borderRadius: 4,
-                        border: '1.5px solid var(--border)', color: copied ? 'var(--success)' : 'var(--primary)',
-                        background: copied ? '#E8F5EE' : 'transparent',
-                        transition: 'all var(--transition)',
-                      }}
-                    >
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
-                      {copied ? t('registration', 'copied') : t('registration', 'copy')}
-                    </button>
-                  </div>
-                  <button className="btn btn-primary" onClick={handlePayment} disabled={processing} style={{ marginTop: 20, width: '100%' }}>
-                    {processing ? t('registration', 'processing') : (lang === 'en' ? 'I already paid' : 'Ja paguei')}
-                  </button>
+                  {!pixData ? (
+                    <>
+                      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                        {t('registration', 'pixInstructions')}
+                      </p>
+                      <button className="btn btn-primary" onClick={handlePayment} disabled={processing} style={{ width: '100%' }}>
+                        {processing ? t('registration', 'processing') : (lang === 'en' ? 'Generate PIX' : 'Gerar PIX')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                        {t('registration', 'pixInstructions')}
+                      </p>
+                      {/* Real QR Code */}
+                      <div style={{ margin: '0 auto 16px', display: 'flex', justifyContent: 'center' }}>
+                        <img
+                          src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                          alt="PIX QR Code"
+                          style={{ width: 180, height: 180, borderRadius: 8 }}
+                        />
+                      </div>
+                      <p style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', marginBottom: 6 }}>
+                        {t('registration', 'pixKey')}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                        <code style={{
+                          padding: '8px 14px', background: 'var(--bg-warm)', borderRadius: 4,
+                          fontSize: 12, color: 'var(--text)', wordBreak: 'break-all', maxWidth: 280,
+                        }}>
+                          {pixData.qr_code}
+                        </code>
+                        <button
+                          onClick={handleCopyPix}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px',
+                            fontSize: 13, fontWeight: 500, borderRadius: 4, flexShrink: 0,
+                            border: '1.5px solid var(--border)', color: copied ? 'var(--success)' : 'var(--primary)',
+                            background: copied ? '#E8F5EE' : 'transparent',
+                            transition: 'all var(--transition)',
+                          }}
+                        >
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                          {copied ? t('registration', 'copied') : t('registration', 'copy')}
+                        </button>
+                      </div>
+
+                      {/* Polling indicator */}
+                      {polling && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, color: 'var(--text-secondary)', fontSize: 14 }}>
+                          <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                          {lang === 'en' ? 'Waiting for payment...' : 'Aguardando pagamento...'}
+                        </div>
+                      )}
+
+                      {/* Manual check button */}
+                      <button
+                        className="btn btn-outline"
+                        onClick={handleCheckStatus}
+                        disabled={processing}
+                        style={{ marginTop: 16, width: '100%' }}
+                      >
+                        {processing ? t('registration', 'processing') : (lang === 'en' ? 'I already paid' : 'Ja paguei')}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
               {/* Credit Card */}
               {paymentMethod === 'card' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ padding: '10px 14px', background: 'var(--bg-warm)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)', borderLeft: '3px solid var(--primary)' }}>
+                    {lang === 'en'
+                      ? 'Card integration requires additional SDK setup'
+                      : 'Integração com cartão requer configuração adicional do SDK'}
+                  </div>
                   <div className="form-group">
                     <label className="form-label">{t('registration', 'cardNumber')}</label>
                     <input className="form-input" placeholder="0000 0000 0000 0000" />
