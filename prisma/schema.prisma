@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Event {
+  id            Int            @id @default(autoincrement())
+  name          String
+  nameEn        String         @default("")
+  subtitle      String         @default("")
+  subtitleEn    String         @default("")
+  date          DateTime
+  endDate       DateTime?
+  time          String         @default("08:00")
+  category      EventCategory  @default(CONFERENCE)
+  price         Float          @default(0)
+  spots         Int            @default(50)
+  spotsLeft     Int            @default(50)
+  location      String         @default("")
+  description   String         @default("")
+  descriptionEn String         @default("")
+  image         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  registrations Registration[]
+}
+
+enum EventCategory {
+  CONFERENCE
+  CAMP
+  WORKSHOP
+  CAFE
+}
+
+model Registration {
+  id        Int                @id @default(autoincrement())
+  event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   Int
+  name      String
+  email     String
+  phone     String
+  church    String             @default("")
+  age       String             @default("")
+  notes     String             @default("")
+  status    RegistrationStatus @default(PENDING)
+  paymentId String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+enum RegistrationStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+}
+
+model TeamMember {
+  id     Int    @id @default(autoincrement())
+  name   String
+  role   String
+  roleEn String @default("")
+  bio    String @default("")
+  bioEn  String @default("")
+  image  String?
+  order  Int    @default(0)
+}
+
+model Settings {
+  id           Int    @id @default(1)
+  projectName  String @default("Projeto Soli Deo Gloria")
+  contactEmail String @default("contato@projetosolideogloria.com")
+  pixKey       String @default("projeto@solideogloria.com")
+  whatsapp     String @default("+55 (81) 99999-9999")
+  address      String @default("Alameda Pau Ferro, 835\nGuabiraba, Recife - PE\n54789-770")
+}
+
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  name         String   @default("")
+  createdAt    DateTime @default(now())
+}
