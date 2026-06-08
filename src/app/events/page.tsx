@@ -408,9 +408,24 @@ function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProp
                 </div>
               )}
 
+              {/* Payment error */}
+              {paymentError && (
+                <div style={{ padding: '12px 16px', background: '#FDEAEA', color: 'var(--error)', borderRadius: 6, fontSize: 14, marginTop: 12 }}>
+                  {paymentError}
+                </div>
+              )}
+
               <button
                 className="btn btn-ghost"
-                onClick={() => setStep(1)}
+                onClick={() => {
+                  if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+                  setPolling(false);
+                  setPixData(null);
+                  setBoletoUrl(null);
+                  setPaymentError(null);
+                  setPaymentId(null);
+                  setStep(1);
+                }}
                 style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 <ArrowLeft size={14} /> {t('registration', 'back')}
@@ -431,9 +446,30 @@ function RegistrationModal({ event, onClose, onComplete }: RegistrationModalProp
               <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, marginBottom: 8 }}>
                 {t('registration', 'success')}
               </h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 8 }}>
                 {t('registration', 'successMsg')}
               </p>
+
+              {/* PIX confirmation */}
+              {pixData && (
+                <p style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600, marginBottom: 16 }}>
+                  {lang === 'en' ? 'Payment confirmed via PIX' : 'Pagamento confirmado via PIX'}
+                </p>
+              )}
+
+              {/* Boleto link */}
+              {boletoUrl && (
+                <a
+                  href={boletoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline"
+                  style={{ width: '100%', marginBottom: 12, display: 'inline-flex', justifyContent: 'center' }}
+                >
+                  {lang === 'en' ? 'View Boleto' : 'Ver Boleto'}
+                </a>
+              )}
+
               <button className="btn btn-primary" onClick={() => { onComplete(); onClose(); }} style={{ width: '100%' }}>
                 {t('registration', 'close')}
               </button>
