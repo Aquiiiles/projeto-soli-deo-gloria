@@ -4,28 +4,24 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { MOCK_EVENTS, MOCK_REGISTRATIONS, MOCK_TEAM, type SDGEvent, type Registration, type TeamMember } from './data';
 
 interface StoreContextType {
-  // Events
   events: SDGEvent[];
-  addEvent: (event: Omit<SDGEvent, 'id'>) => SDGEvent;
-  updateEvent: (id: number, event: Partial<SDGEvent>) => void;
-  deleteEvent: (id: number) => void;
+  addEvent: (event: Omit<SDGEvent, 'id'>) => Promise<SDGEvent>;
+  updateEvent: (id: number, event: Partial<SDGEvent>) => Promise<void>;
+  deleteEvent: (id: number) => Promise<void>;
   getEvent: (id: number) => SDGEvent | undefined;
 
-  // Registrations
   registrations: Registration[];
-  addRegistration: (reg: Omit<Registration, 'id' | 'date'>) => Registration;
-  updateRegistrationStatus: (id: number, status: Registration['status']) => void;
+  addRegistration: (reg: Omit<Registration, 'id' | 'date'>) => Promise<Registration>;
+  updateRegistrationStatus: (id: number, status: Registration['status']) => Promise<void>;
   getRegistrationsByEvent: (eventId: number) => Registration[];
 
-  // Team
   team: TeamMember[];
-  addTeamMember: (member: TeamMember) => void;
-  updateTeamMember: (index: number, member: TeamMember) => void;
-  deleteTeamMember: (index: number) => void;
+  addTeamMember: (member: TeamMember) => Promise<void>;
+  updateTeamMember: (index: number, member: TeamMember) => Promise<void>;
+  deleteTeamMember: (index: number) => Promise<void>;
 
-  // Settings
   settings: SiteSettings;
-  updateSettings: (settings: Partial<SiteSettings>) => void;
+  updateSettings: (settings: Partial<SiteSettings>) => Promise<void>;
 }
 
 export interface SiteSettings {
@@ -46,121 +42,195 @@ const DEFAULT_SETTINGS: SiteSettings = {
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
-function loadFromStorage<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback;
+async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T | null> {
   try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
+    const res = await fetch(url, opts);
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
-    return fallback;
-  }
-}
-
-function saveToStorage<T>(key: string, data: T): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch {
-    // localStorage might be full or unavailable
+    return null;
   }
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<SDGEvent[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [team, setTeam] = useState<(TeamMember & { id?: number })[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
+  const [useApi, setUseApi] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
-    setEvents(loadFromStorage('sdg_events', MOCK_EVENTS));
-    setRegistrations(loadFromStorage('sdg_registrations', MOCK_REGISTRATIONS));
-    setTeam(loadFromStorage('sdg_team', MOCK_TEAM));
-    setSettings(loadFromStorage('sdg_settings', DEFAULT_SETTINGS));
-    setLoaded(true);
+    async function init() {
+      const apiEvents = await apiFetch<SDGEvent[]>('/api/events');
+      if (apiEvents) {
+        setUseApi(true);
+        setEvents(apiEvents);
+        const [apiRegs, apiTeam, apiSettings] = await Promise.all([
+          apiFetch<Registration[]>('/api/registrations'),
+          apiFetch<(TeamMember & { id?: number })[]>('/api/team'),
+          apiFetch<SiteSettings>('/api/settings'),
+        ]);
+        setRegistrations(apiRegs || []);
+        setTeam(apiTeam || []);
+        if (apiSettings) setSettings(apiSettings);
+      } else {
+        setEvents(MOCK_EVENTS);
+        setRegistrations(MOCK_REGISTRATIONS);
+        setTeam(MOCK_TEAM);
+      }
+      setLoaded(true);
+    }
+    init();
   }, []);
 
-  // Save to localStorage on changes
-  useEffect(() => {
-    if (loaded) saveToStorage('sdg_events', events);
-  }, [events, loaded]);
-
-  useEffect(() => {
-    if (loaded) saveToStorage('sdg_registrations', registrations);
-  }, [registrations, loaded]);
-
-  useEffect(() => {
-    if (loaded) saveToStorage('sdg_team', team);
-  }, [team, loaded]);
-
-  useEffect(() => {
-    if (loaded) saveToStorage('sdg_settings', settings);
-  }, [settings, loaded]);
-
-  // Event CRUD
-  const addEvent = useCallback((event: Omit<SDGEvent, 'id'>): SDGEvent => {
+  // --- Events ---
+  const addEvent = useCallback(async (event: Omit<SDGEvent, 'id'>): Promise<SDGEvent> => {
+    if (useApi) {
+      const created = await apiFetch<SDGEvent>('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+      });
+      if (created) {
+        setEvents(prev => [...prev, created]);
+        return created;
+      }
+    }
     const newEvent: SDGEvent = { ...event, id: Date.now() } as SDGEvent;
     setEvents(prev => [...prev, newEvent]);
     return newEvent;
-  }, []);
+  }, [useApi]);
 
-  const updateEvent = useCallback((id: number, updates: Partial<SDGEvent>) => {
+  const updateEvent = useCallback(async (id: number, updates: Partial<SDGEvent>) => {
+    if (useApi) {
+      const updated = await apiFetch<SDGEvent>(`/api/events/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (updated) {
+        setEvents(prev => prev.map(e => e.id === id ? updated : e));
+        return;
+      }
+    }
     setEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-  }, []);
+  }, [useApi]);
 
-  const deleteEvent = useCallback((id: number) => {
+  const deleteEvent = useCallback(async (id: number) => {
+    if (useApi) {
+      await apiFetch(`/api/events/${id}`, { method: 'DELETE' });
+    }
     setEvents(prev => prev.filter(e => e.id !== id));
-  }, []);
+  }, [useApi]);
 
   const getEvent = useCallback((id: number) => {
     return events.find(e => e.id === id);
   }, [events]);
 
-  // Registration CRUD
-  const addRegistration = useCallback((reg: Omit<Registration, 'id' | 'date'>): Registration => {
+  // --- Registrations ---
+  const addRegistration = useCallback(async (reg: Omit<Registration, 'id' | 'date'>): Promise<Registration> => {
+    if (useApi) {
+      const created = await apiFetch<Registration>('/api/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reg),
+      });
+      if (created) {
+        setRegistrations(prev => [...prev, created]);
+        setEvents(prev => prev.map(e =>
+          e.id === reg.eventId && e.spotsLeft > 0
+            ? { ...e, spotsLeft: e.spotsLeft - 1 }
+            : e
+        ));
+        return created;
+      }
+    }
     const newReg: Registration = {
       ...reg,
       id: Date.now(),
       date: new Date().toISOString().split('T')[0],
     };
     setRegistrations(prev => [...prev, newReg]);
-    // Decrease spots left on the event
     setEvents(prev => prev.map(e =>
       e.id === reg.eventId && e.spotsLeft > 0
         ? { ...e, spotsLeft: e.spotsLeft - 1 }
         : e
     ));
     return newReg;
-  }, []);
+  }, [useApi]);
 
-  const updateRegistrationStatus = useCallback((id: number, status: Registration['status']) => {
+  const updateRegistrationStatus = useCallback(async (id: number, status: Registration['status']) => {
+    if (useApi) {
+      await apiFetch(`/api/registrations/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+    }
     setRegistrations(prev => prev.map(r => r.id === id ? { ...r, status } : r));
-  }, []);
+  }, [useApi]);
 
   const getRegistrationsByEvent = useCallback((eventId: number) => {
     return registrations.filter(r => r.eventId === eventId);
   }, [registrations]);
 
-  // Team CRUD
-  const addTeamMember = useCallback((member: TeamMember) => {
+  // --- Team ---
+  const addTeamMember = useCallback(async (member: TeamMember) => {
+    if (useApi) {
+      const created = await apiFetch<TeamMember & { id?: number }>('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(member),
+      });
+      if (created) {
+        setTeam(prev => [...prev, created]);
+        return;
+      }
+    }
     setTeam(prev => [...prev, member]);
-  }, []);
+  }, [useApi]);
 
-  const updateTeamMember = useCallback((index: number, member: TeamMember) => {
-    setTeam(prev => prev.map((m, i) => i === index ? member : m));
-  }, []);
+  const updateTeamMember = useCallback(async (index: number, member: TeamMember) => {
+    if (useApi) {
+      const existing = team[index] as TeamMember & { id?: number };
+      if (existing?.id) {
+        await apiFetch(`/api/team/${existing.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(member),
+        });
+      }
+    }
+    setTeam(prev => prev.map((m, i) => i === index ? { ...m, ...member } : m));
+  }, [useApi, team]);
 
-  const deleteTeamMember = useCallback((index: number) => {
+  const deleteTeamMember = useCallback(async (index: number) => {
+    if (useApi) {
+      const existing = team[index] as TeamMember & { id?: number };
+      if (existing?.id) {
+        await apiFetch(`/api/team/${existing.id}`, { method: 'DELETE' });
+      }
+    }
     setTeam(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  }, [useApi, team]);
 
-  // Settings
-  const updateSettings = useCallback((updates: Partial<SiteSettings>) => {
+  // --- Settings ---
+  const updateSettings = useCallback(async (updates: Partial<SiteSettings>) => {
+    if (useApi) {
+      const updated = await apiFetch<SiteSettings>('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (updated) {
+        setSettings(updated);
+        return;
+      }
+    }
     setSettings(prev => ({ ...prev, ...updates }));
-  }, []);
+  }, [useApi]);
 
-  // Don't render children until data is loaded from localStorage
   if (!loaded) {
     return null;
   }
