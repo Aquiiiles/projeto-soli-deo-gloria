@@ -7,6 +7,7 @@ import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
 import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Calendar, MapPin, Coffee, ImageIcon, Book, Users } from 'lucide-react';
@@ -182,7 +183,7 @@ export default function Home() {
                 {t('about', 'learnMore')} <ArrowRight size={16} />
               </Link>
             </div>
-            <ImagePlaceholder label="SDG Aldeia" aspectRatio="4/3" style={{ borderRadius: 8 }} />
+            <img src={images.aboutPreview} alt="SDG Aldeia" style={{ borderRadius: 8, width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} loading="lazy" />
           </div>
         </Container>
       </Section>
@@ -355,7 +356,7 @@ export default function Home() {
               alignItems: 'center',
             }}
           >
-            <ImagePlaceholder label="Cafe SDG" aspectRatio="4/3" style={{ borderRadius: 8 }} />
+            <img src={images.cafePreview} alt="Café SDG" style={{ borderRadius: 8, width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} loading="lazy" />
             <div>
               <SectionTag>{t('cafe', 'sectionTag')}</SectionTag>
               <h2
@@ -401,11 +402,11 @@ export default function Home() {
               marginBottom: 40,
             }}
           >
-            <ImagePlaceholder label="Espaco 1" style={{ borderRadius: 8, height: '100%' }} height="100%" />
-            <ImagePlaceholder label="Espaco 2" style={{ borderRadius: 8, height: '100%' }} height="100%" />
-            <ImagePlaceholder label="Espaco 3" style={{ borderRadius: 8, height: '100%' }} height="100%" />
-            <ImagePlaceholder label="Espaco 4" style={{ borderRadius: 8, height: '100%', gridColumn: 'span 2' }} height="100%" />
-            <ImagePlaceholder label="Espaco 5" style={{ borderRadius: 8, height: '100%' }} height="100%" />
+            <img src={images.space1} alt="Espaço 1" style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+            <img src={images.space2} alt="Espaço 2" style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+            <img src={images.space3} alt="Espaço 3" style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+            <img src={images.space4} alt="Espaço 4" style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover', gridColumn: 'span 2' }} loading="lazy" />
+            <img src={images.space5} alt="Espaço 5" style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>

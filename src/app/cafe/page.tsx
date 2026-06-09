@@ -4,7 +4,7 @@ import { useT, useLang } from '@/lib/i18n';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,10 +30,11 @@ export default function CafePage() {
       {/* Content */}
       <Section>
         <Container narrow>
-          <ImagePlaceholder
-            label={lang === 'pt' ? 'Café Soli Deo Gloria' : 'Café Soli Deo Gloria'}
-            aspectRatio="21/9"
-            style={{ borderRadius: 8, marginBottom: 40 }}
+          <img
+            src={images.cafeHero}
+            alt="Café Soli Deo Gloria"
+            style={{ width: '100%', aspectRatio: '21/9', objectFit: 'cover', borderRadius: 8, marginBottom: 40 }}
+            loading="lazy"
           />
           <p
             style={{
@@ -84,15 +85,16 @@ export default function CafePage() {
             }}
           >
             {[
-              { pt: 'Ambiente interno', en: 'Interior' },
-              { pt: 'Bebidas artesanais', en: 'Artisan beverages' },
-              { pt: 'Bolos e doces', en: 'Cakes and sweets' },
+              { pt: 'Ambiente interno', en: 'Interior', src: images.cafeInterior },
+              { pt: 'Bebidas artesanais', en: 'Artisan beverages', src: images.cafeDrinks },
+              { pt: 'Bolos e doces', en: 'Cakes and sweets', src: images.cafePastries },
             ].map((item) => (
-              <ImagePlaceholder
+              <img
                 key={item.pt}
-                label={lang === 'pt' ? item.pt : item.en}
-                aspectRatio="4/3"
-                style={{ borderRadius: 8 }}
+                src={item.src}
+                alt={lang === 'pt' ? item.pt : item.en}
+                style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 8 }}
+                loading="lazy"
               />
             ))}
           </div>

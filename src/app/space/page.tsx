@@ -5,7 +5,7 @@ import { useT, useLang } from '@/lib/i18n';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import { ChevronLeft, ChevronRight, X, MapPin, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -83,10 +83,11 @@ export default function SpacePage() {
                 }}
                 onClick={() => setSelectedIndex(i)}
               >
-                <ImagePlaceholder
-                  label={lang === 'pt' ? item.label : item.labelEn}
-                  aspectRatio="16/9"
-                  style={{ borderRadius: 8 }}
+                <img
+                  src={images.gallery[i]}
+                  alt={lang === 'pt' ? item.label : item.labelEn}
+                  style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8 }}
+                  loading="lazy"
                 />
               </div>
             ))}
@@ -142,10 +143,10 @@ export default function SpacePage() {
           </button>
 
           <div style={{ maxWidth: '80vw', maxHeight: '80vh', position: 'relative' }}>
-            <ImagePlaceholder
-              label={lang === 'pt' ? GALLERY_ITEMS[selectedIndex].label : GALLERY_ITEMS[selectedIndex].labelEn}
-              aspectRatio="16/9"
-              style={{ borderRadius: 8, minWidth: 320, maxWidth: '80vw' }}
+            <img
+              src={images.gallery[selectedIndex]}
+              alt={lang === 'pt' ? GALLERY_ITEMS[selectedIndex].label : GALLERY_ITEMS[selectedIndex].labelEn}
+              style={{ borderRadius: 8, minWidth: 320, maxWidth: '80vw', maxHeight: '70vh', objectFit: 'contain' }}
             />
             <p
               style={{
@@ -212,10 +213,13 @@ export default function SpacePage() {
                 <ArrowRight size={16} />
               </Link>
             </div>
-            <ImagePlaceholder
-              label={lang === 'pt' ? 'Mapa de localização' : 'Location map'}
-              aspectRatio="4/3"
-              style={{ borderRadius: 8 }}
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3949.5!2d-35.05!3d-8.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOCswMCcwMC4wIlMgMzXCsDAzJzAwLjAiVw!5e0!3m2!1spt-BR!2sbr"
+              style={{ width: '100%', aspectRatio: '4/3', borderRadius: 8, border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title={lang === 'pt' ? 'Mapa de localização' : 'Location map'}
             />
           </div>
         </Container>

@@ -5,7 +5,7 @@ import { useT, useLang } from '@/lib/i18n';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import Toast from '@/components/Toast';
 import { MapPin, MessageCircle, Mail, ExternalLink } from 'lucide-react';
 
@@ -181,10 +181,13 @@ export default function ContactPage() {
                 ))}
               </div>
 
-              <ImagePlaceholder
-                label={lang === 'pt' ? 'Mapa de localização' : 'Location map'}
-                aspectRatio="16/9"
-                style={{ borderRadius: 8 }}
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3949.5!2d-35.05!3d-8.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOCswMCcwMC4wIlMgMzXCsDAzJzAwLjAiVw!5e0!3m2!1spt-BR!2sbr"
+                style={{ width: '100%', aspectRatio: '16/9', borderRadius: 8, border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={lang === 'pt' ? 'Mapa de localização' : 'Location map'}
               />
             </div>
           </div>

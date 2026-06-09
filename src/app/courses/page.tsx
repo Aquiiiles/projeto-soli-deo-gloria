@@ -4,7 +4,7 @@ import { useT, useLang } from '@/lib/i18n';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import { Book, Settings, Users, Clock, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -146,10 +146,11 @@ export default function CoursesPage() {
               alignItems: 'center',
             }}
           >
-            <ImagePlaceholder
-              label={lang === 'pt' ? 'Instituto de Tecnologia e Teologia' : 'Institute of Technology and Theology'}
-              aspectRatio="4/3"
-              style={{ borderRadius: 8 }}
+            <img
+              src={images.institute}
+              alt={lang === 'pt' ? 'Instituto de Tecnologia e Teologia' : 'Institute of Technology and Theology'}
+              style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 8 }}
+              loading="lazy"
             />
             <div>
               <h2 className="serif" style={{ fontSize: 'clamp(24px, 3vw, 36px)', marginBottom: 16 }}>
@@ -186,6 +187,27 @@ export default function CoursesPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </Container>
+      </Section>
+      {/* Video */}
+      <Section>
+        <Container narrow>
+          <h2
+            className="serif"
+            style={{ fontSize: 'clamp(28px, 4vw, 40px)', marginBottom: 24, textAlign: 'center' }}
+          >
+            {lang === 'pt' ? 'Turma 01 — Nossos Primeiros Alunos' : 'Class 01 — Our First Students'}
+          </h2>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${images.videos.turma01}`}
+              title={lang === 'pt' ? 'Turma 01' : 'Class 01'}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            />
           </div>
         </Container>
       </Section>

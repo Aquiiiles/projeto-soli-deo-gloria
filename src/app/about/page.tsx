@@ -4,7 +4,7 @@ import { useT, useLang } from '@/lib/i18n';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 
 export default function AboutPage() {
   const t = useT();
@@ -49,10 +49,11 @@ export default function AboutPage() {
       {/* Wide Image */}
       <Section style={{ paddingTop: 0, paddingBottom: 0 }}>
         <Container>
-          <ImagePlaceholder
-            label={lang === 'pt' ? 'Vista panorâmica do Monte Moriah' : 'Panoramic view of Monte Moriah'}
-            aspectRatio="21/9"
-            style={{ borderRadius: 8 }}
+          <img
+            src={images.aboutPanorama}
+            alt={lang === 'pt' ? 'Vista panorâmica do Monte Moriah' : 'Panoramic view of Monte Moriah'}
+            style={{ width: '100%', aspectRatio: '21/9', objectFit: 'cover', borderRadius: 8 }}
+            loading="lazy"
           />
         </Container>
       </Section>
@@ -72,8 +73,30 @@ export default function AboutPage() {
         </Container>
       </Section>
 
-      {/* Partnership */}
+      {/* Video */}
       <Section bg="var(--bg-warm)">
+        <Container narrow>
+          <h2
+            className="serif"
+            style={{ fontSize: 'clamp(28px, 4vw, 40px)', marginBottom: 24, textAlign: 'center' }}
+          >
+            {lang === 'pt' ? 'Conheça o Projeto' : 'Meet the Project'}
+          </h2>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${images.videos.turma03}`}
+              title="Projeto Soli Deo Gloria"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
+        </Container>
+      </Section>
+
+      {/* Partnership */}
+      <Section>
         <Container narrow style={{ textAlign: 'center' }}>
           <h2 className="serif" style={{ fontSize: 'clamp(24px, 3vw, 36px)', marginBottom: 16 }}>
             {lang === 'pt' ? 'Instituto de Tecnologia e Teologia' : 'Institute of Technology and Theology'}

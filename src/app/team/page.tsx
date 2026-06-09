@@ -4,7 +4,7 @@ import { useT, useLang } from '@/lib/i18n';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import { useStore } from '@/lib/store';
 
 const ROLE_LABELS_PT: Record<string, string> = {
@@ -60,10 +60,11 @@ export default function TeamPage() {
                   animation: `fadeInUp 0.6s ease-out ${i * 0.1}s forwards`,
                 }}
               >
-                <ImagePlaceholder
-                  label={member.name}
-                  height={260}
-                  style={{ borderRadius: 0 }}
+                <img
+                  src={(member as any).image || images.teamDefault}
+                  alt={member.name}
+                  style={{ width: '100%', height: 260, objectFit: 'cover' }}
+                  loading="lazy"
                 />
                 <div style={{ padding: 24 }}>
                   <h3

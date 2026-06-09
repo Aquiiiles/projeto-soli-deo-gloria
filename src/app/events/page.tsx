@@ -7,7 +7,7 @@ import { useStore } from '@/lib/store';
 import Container from '@/components/Container';
 import Section from '@/components/Section';
 import SectionTag from '@/components/SectionTag';
-import ImagePlaceholder from '@/components/ImagePlaceholder';
+import { images } from '@/lib/images';
 import {
   Calendar, MapPin, Clock, Users, Filter,
   ChevronLeft, ChevronRight, ArrowRight, ArrowLeft,
@@ -626,10 +626,11 @@ export default function EventsPage() {
                     style={{ cursor: 'pointer' }}
                     onClick={() => setSelectedEvent(ev)}
                   >
-                    <ImagePlaceholder
-                      label={lang === 'en' ? ev.nameEn : ev.name}
-                      aspectRatio="16/10"
-                      style={{ borderRadius: 0 }}
+                    <img
+                      src={ev.image || images.aboutPreview}
+                      alt={lang === 'en' ? ev.nameEn : ev.name}
+                      style={{ width: '100%', aspectRatio: '16/10', objectFit: 'cover' }}
+                      loading="lazy"
                     />
                     <div style={{ padding: 20 }}>
                       {/* Category badge + spots warning */}
@@ -797,10 +798,10 @@ export default function EventsPage() {
       {selectedEvent && !showRegistration && (
         <div className="overlay" onClick={() => setSelectedEvent(null)}>
           <div className="modal" style={{ maxWidth: 620, padding: 0 }} onClick={e => e.stopPropagation()}>
-            <ImagePlaceholder
-              label={lang === 'en' ? selectedEvent.nameEn : selectedEvent.name}
-              aspectRatio="16/9"
-              style={{ borderRadius: '12px 12px 0 0' }}
+            <img
+              src={selectedEvent.image || images.aboutPreview}
+              alt={lang === 'en' ? selectedEvent.nameEn : selectedEvent.name}
+              style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: '12px 12px 0 0' }}
             />
             <div style={{ padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
